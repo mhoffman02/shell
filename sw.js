@@ -3,12 +3,13 @@
  * @description Universal PWA Shell Service Worker.
  */
 
-const CACHE_NAME = 'universal-pwa-shell-v3';
+const CACHE_NAME = 'universal-pwa-shell-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css',
   './pwa.js',
+  './vendor/alpine.min.js',
   './manifest.json',
   './icons/icon.svg'
 ];

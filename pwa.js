@@ -90,20 +90,66 @@ async function saveCachedBundle(appKey, bundleObj) {
   }
 }
 
-// 4. Remote Bundle Fetcher
+// 4. Remote Bundle Fetcher (with CORS + JSONP fallback)
+function fetchRemoteBundleJsonp(gasUrl, currentHash) {
+  return new Promise((resolve) => {
+    const callbackName = 'gas_bundle_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const script = document.createElement('script');
+    let resolved = false;
+
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(null);
+      }
+    }, 15000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[callbackName] = (data) => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(data);
+      }
+    };
+
+    script.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(null);
+      }
+    };
+
+    const separator = gasUrl.includes('?') ? '&' : '?';
+    script.src = `${gasUrl}${separator}action=bundle&callback=${callbackName}${currentHash ? '&currentHash=' + encodeURIComponent(currentHash) : ''}`;
+    document.head.appendChild(script);
+  });
+}
+
 async function fetchRemoteBundle(gasUrl, currentHash) {
   if (!gasUrl) return null;
+  // 1. Try standard CORS fetch first
   try {
     const separator = gasUrl.includes('?') ? '&' : '?';
     const fetchUrl = `${gasUrl}${separator}action=bundle${currentHash ? '&currentHash=' + encodeURIComponent(currentHash) : ''}`;
     const res = await fetch(fetchUrl, { mode: 'cors' });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data;
+    if (res.ok) {
+      const data = await res.json();
+      if (data) return data;
+    }
   } catch (err) {
-    console.warn('Remote bundle fetch error:', err);
-    return null;
+    console.warn('Direct CORS fetch failed, trying JSONP transport...', err);
   }
+
+  // 2. Fallback to JSONP script injection (bypasses 100% of browser CORS restrictions)
+  return fetchRemoteBundleJsonp(gasUrl, currentHash);
 }
 
 // 5. DOM Mounting Engine: Injects Styles, Markup, and Executes Scripts
