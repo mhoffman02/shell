@@ -1,12 +1,14 @@
 /**
  * @file sw.js
- * @description Auto-generated JSDoc header for sw.js.
+ * @description Universal PWA Shell Service Worker.
  */
 
-const CACHE_NAME = 'gas-planner-pwa-v1';
+const CACHE_NAME = 'universal-pwa-shell-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './styles.css',
+  './pwa.js',
   './manifest.json',
   './icons/icon.svg'
 ];

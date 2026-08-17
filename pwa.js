@@ -58,20 +58,18 @@ function initPWA() {
   const isCustomApp = appKey !== 'default' && appKey !== 'app';
   const appDisplayName = formatAppName(appKey);
 
-  // Update Page Title and Modal Copy
+  // Set document title if custom app provided
   if (isCustomApp) {
     document.title = `${appDisplayName} — Workspace`;
-    const modalTitle = document.getElementById('modal-title');
-    const modalDesc = document.getElementById('modal-desc');
-    if (modalTitle) modalTitle.textContent = `Connect ${appDisplayName}`;
-    if (modalDesc) modalDesc.textContent = `Enter the Application URL to load and launch ${appDisplayName}:`;
   } else {
     document.title = `Application Launcher`;
-    const modalTitle = document.getElementById('modal-title');
-    const modalDesc = document.getElementById('modal-desc');
-    if (modalTitle) modalTitle.textContent = `Connect Application`;
-    if (modalDesc) modalDesc.textContent = `Enter the Application URL to load and launch the app:`;
   }
+
+  // Consistent universal copy
+  const modalTitle = document.getElementById('modal-title');
+  const modalDesc = document.getElementById('modal-desc');
+  if (modalTitle) modalTitle.textContent = `Connect Application`;
+  if (modalDesc) modalDesc.textContent = `Enter the Application URL to load and launch the app:`;
 
   let gasUrl = explicitGasUrl || localStorage.getItem(storageKey);
 
