@@ -30,12 +30,52 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-#app-frame {
+#app-root {
   width: 100%;
   height: 100%;
-  border: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: block;
-  background: transparent;
+}
+
+/* Loading Skeleton / Splash */
+.shell-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1.25rem;
+  color: var(--text-main);
+  font-family: serif;
+}
+
+.shell-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid var(--primary-light);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.shell-loading-text {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+.shell-error-text {
+  font-size: 0.85rem;
+  color: #b3392f;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Modal Overlay */
