@@ -135,20 +135,7 @@ function fetchRemoteBundleJsonp(gasUrl, currentHash) {
 
 async function fetchRemoteBundle(gasUrl, currentHash) {
   if (!gasUrl) return null;
-  // 1. Try standard CORS fetch first
-  try {
-    const separator = gasUrl.includes('?') ? '&' : '?';
-    const fetchUrl = `${gasUrl}${separator}action=bundle${currentHash ? '&currentHash=' + encodeURIComponent(currentHash) : ''}`;
-    const res = await fetch(fetchUrl, { mode: 'cors' });
-    if (res.ok) {
-      const data = await res.json();
-      if (data) return data;
-    }
-  } catch (err) {
-    console.warn('Direct CORS fetch failed, trying JSONP transport...', err);
-  }
-
-  // 2. Fallback to JSONP script injection (bypasses 100% of browser CORS restrictions)
+  // Use JSONP script injection directly (bypasses 100% of browser CORS and tracking blocker restrictions)
   return fetchRemoteBundleJsonp(gasUrl, currentHash);
 }
 
