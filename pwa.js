@@ -13,7 +13,7 @@ if ('serviceWorker' in navigator) {
 
 // 2. Format app name from slug (e.g., 'day-planner' -> 'Day Planner')
 function formatAppName(slug) {
-  if (!slug) return 'App';
+  if (!slug || slug === 'default' || slug === 'app') return 'Application';
   return slug
     .split(/[-_]/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -33,7 +33,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   const installText = document.getElementById('pwa-install-text');
   
   if (installBar && installText) {
-    installText.textContent = appKey ? `Install ${appDisplayName}` : 'Install App';
+    installText.textContent = (appKey && appKey !== 'default') ? `Install ${appDisplayName}` : 'Install Application';
     installBar.classList.remove('is-hidden');
   }
 });
@@ -55,15 +55,22 @@ function initPWA() {
   const appKey = (params.get('app') || params.get('name') || 'default').toLowerCase();
   const explicitGasUrl = params.get('gasUrl');
   const storageKey = `gas_url_${appKey}`;
-  const appDisplayName = formatAppName(appKey === 'default' ? '' : appKey);
+  const isCustomApp = appKey !== 'default' && appKey !== 'app';
+  const appDisplayName = formatAppName(appKey);
 
-  // Update Page Title and Modal Copy Dynamically
-  if (appKey !== 'default') {
+  // Update Page Title and Modal Copy
+  if (isCustomApp) {
     document.title = `${appDisplayName} — Workspace`;
     const modalTitle = document.getElementById('modal-title');
     const modalDesc = document.getElementById('modal-desc');
     if (modalTitle) modalTitle.textContent = `Connect ${appDisplayName}`;
-    if (modalDesc) modalDesc.textContent = `Enter your Google Apps Script Web App URL to link ${appDisplayName}:`;
+    if (modalDesc) modalDesc.textContent = `Enter the Application URL to load and launch ${appDisplayName}:`;
+  } else {
+    document.title = `Application Launcher`;
+    const modalTitle = document.getElementById('modal-title');
+    const modalDesc = document.getElementById('modal-desc');
+    if (modalTitle) modalTitle.textContent = `Connect Application`;
+    if (modalDesc) modalDesc.textContent = `Enter the Application URL to load and launch the app:`;
   }
 
   let gasUrl = explicitGasUrl || localStorage.getItem(storageKey);
