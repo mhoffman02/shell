@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Day Planner PWA</title>
+  <title>App Launcher</title>
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#2d6a5a">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,19 +13,55 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <iframe id="app-frame" title="Day Planner Application"></iframe>
+  <!-- Fullscreen iframe container for active application -->
+  <iframe id="app-frame" title="Application View" allow="camera; microphone; geolocation; clipboard-read; clipboard-write"></iframe>
 
+  <!-- First-Run / Setup Connection Card -->
   <div id="config-modal" class="is-hidden">
-    <div class="modal-box">
-      <h2>📖 Connect GAS Day Planner</h2>
-      <p>Enter your Google Apps Script Web App Executable URL below (e.g., <code>https://script.google.com/macros/s/.../exec</code>):</p>
-      <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec">
-      <button type="button" id="launch-btn">Launch Planner PWA</button>
+    <div class="modal-card">
+      <div class="card-badge">
+        <svg class="badge-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <h2 id="modal-title">Connect Private App</h2>
+      <p id="modal-desc">Enter your Google Apps Script Web App executable URL below to link this workspace:</p>
+      
+      <div class="input-group">
+        <input 
+          type="url" 
+          id="gas-url-input" 
+          placeholder="https://script.google.com/macros/s/.../exec"
+          autocomplete="off"
+          spellcheck="false"
+          required
+        >
+      </div>
+
+      <div class="action-row">
+        <button type="button" id="launch-btn" class="btn-primary">
+          <span>Launch Workspace</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="privacy-footnote">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+        <span>Zero cloud storage. Key stored locally in your browser.</span>
+      </div>
     </div>
   </div>
 
-  <div id="pwa-install-bar">
-    <span>📲 Install Day Planner App</span>
+  <!-- Floating Install PWA Banner -->
+  <div id="pwa-install-bar" class="is-hidden" role="button" tabindex="0" aria-label="Install Web Application">
+    <span class="install-icon">📲</span>
+    <span id="pwa-install-text">Install App</span>
+    <button type="button" id="pwa-dismiss-btn" aria-label="Dismiss banner">✕</button>
   </div>
 
   <script src="./pwa.js"></script>
