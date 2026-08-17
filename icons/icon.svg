@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d6a5a" />
+      <stop offset="100%" stop-color="#1b4339" />
+    </linearGradient>
+    <linearGradient id="binder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcfbfa" />
+      <stop offset="100%" stop-color="#f4f0ea" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <rect x="24" y="24" width="464" height="464" rx="88" fill="none" stroke="#c5a059" stroke-width="4" opacity="0.6" />
+
+  <g filter="url(#shadow)">
+    <path d="M 88,96 L 240,96 C 248,96 252,100 252,108 L 252,404 C 252,416 248,416 240,416 L 88,416 C 80,416 72,408 72,400 L 72,112 C 72,104 80,96 88,96 Z" fill="url(#binder)" />
+    <path d="M 272,96 L 424,96 C 432,96 440,104 440,112 L 440,400 C 440,408 432,416 424,416 L 272,416 C 264,416 260,412 260,404 L 260,108 C 260,100 264,96 272,96 Z" fill="url(#binder)" />
+    
+    <rect x="250" y="96" width="12" height="320" fill="#1b4339" opacity="0.15" />
+    <line x1="256" y1="96" x2="256" y2="416" stroke="#2d6a5a" stroke-width="2" opacity="0.3" />
+    
+    <circle cx="256" cy="140" r="14" fill="none" stroke="#c5a059" stroke-width="5" />
+    <circle cx="256" cy="256" r="14" fill="none" stroke="#c5a059" stroke-width="5" />
+    <circle cx="256" cy="372" r="14" fill="none" stroke="#c5a059" stroke-width="5" />
+    
+    <line x1="104" y1="140" x2="224" y2="140" stroke="#2d6a5a" stroke-width="3" stroke-linecap="round" opacity="0.7" />
+    <line x1="104" y1="176" x2="224" y2="176" stroke="#2d6a5a" stroke-width="2" stroke-linecap="round" opacity="0.3" />
+    <line x1="104" y1="208" x2="224" y2="208" stroke="#2d6a5a" stroke-width="2" stroke-linecap="round" opacity="0.3" />
+    <line x1="104" y1="240" x2="224" y2="240" stroke="#2d6a5a" stroke-width="2" stroke-linecap="round" opacity="0.3" />
+    
+    <rect x="288" y="130" width="124" height="250" rx="6" fill="none" stroke="#2d6a5a" stroke-width="2" opacity="0.4" />
+    <rect x="296" y="175" width="100" height="18" rx="4" fill="#2d6a5a" opacity="0.85" />
+    <rect x="296" y="245" width="80" height="18" rx="4" fill="#c5a059" opacity="0.85" />
+  </g>
+</svg>

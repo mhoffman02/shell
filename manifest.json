@@ -1,0 +1,19 @@
+{
+  "name": "Franklin Covey Planner PWA Launcher",
+  "short_name": "GAS Planner",
+  "description": "Installable PWA Wrapper Launcher for Google Apps Script Day Planner Web App.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fcfbfa",
+  "theme_color": "#2d6a5a",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
