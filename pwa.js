@@ -271,20 +271,27 @@ async function initPWA() {
     if (gasUrl) localStorage.setItem(storageKey, gasUrl);
   }
 
-  const cached = await getCachedBundle(appKey);
+  let cached = await getCachedBundle(appKey);
 
-  // A. If cached bundle exists: MOUNT INSTANTLY (0ms offline cold-start!)
+  // A. Check built-in offline bundles if no IndexedDB cache exists yet (cold start)
+  if (!cached && typeof BUILTIN_BUNDLES !== 'undefined' && (BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'])) {
+    cached = BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'];
+    await saveCachedBundle(appKey, cached); // persist to IndexedDB for future loads
+    console.log('📦 Hydrated from BUILTIN_BUNDLES (offline cold-start).');
+  }
+
+  // B. If cached / built-in bundle exists: MOUNT INSTANTLY (0ms offline cold-start!)
   if (cached && (cached.bundle || cached.html)) {
     mountBundle(cached);
 
-    // Background SWR update check if online
+    // Background SWR update check if online and gasUrl is configured
     if (navigator.onLine && gasUrl) {
       fetchRemoteBundle(gasUrl, cached.hash).then(async (update) => {
         if (update && !update.upToDate && (update.bundle || update.html)) {
           await saveCachedBundle(appKey, update);
-          console.log('📦 Updated bundle cached for next launch.');
+          console.log('📦 Updated bundle cached for next launch (SWR).');
         }
-      });
+      }).catch(() => {});
     }
     return;
   }
