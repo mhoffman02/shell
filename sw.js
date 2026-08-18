@@ -3,7 +3,7 @@
  * @description Universal PWA Shell Service Worker.
  */
 
-const CACHE_NAME = 'universal-pwa-shell-v5';
+const CACHE_NAME = 'universal-pwa-shell-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -11,7 +11,8 @@ const ASSETS_TO_CACHE = [
   './pwa.js',
   './vendor/alpine.min.js',
   './manifest.json',
-  './icons/icon.svg'
+  './icons/icon.svg',
+  './icons/icon-maskable.svg'
 ];
 
 self.addEventListener('install', (event) => {
