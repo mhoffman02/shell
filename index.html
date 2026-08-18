@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Application Launcher</title>
   <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <meta name="color-scheme" content="light dark">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#2d6a5a">
   <meta name="mobile-web-app-capable" content="yes">
@@ -34,28 +35,32 @@
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
       </div>
-      <h2 id="modal-title">Connect Application</h2>
-      <p id="modal-desc">Enter the Application URL to load and launch the app:</p>
-      
-      <div class="input-group">
-        <input 
-          type="url" 
-          id="gas-url-input" 
-          placeholder="https://script.google.com/macros/s/.../exec"
-          autocomplete="off"
-          spellcheck="false"
-          required
-        >
-      </div>
+      <h2 id="modal-title">Application Launcher</h2>
+      <p id="modal-desc">Choose an app to launch:</p>
 
-      <div class="action-row">
-        <button type="button" id="launch-btn" class="btn-primary">
-          <span id="launch-btn-text">Launch Application</span>
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </button>
-      </div>
+      <div id="app-picker" class="app-picker is-hidden"></div>
+
+      <details id="custom-connect" class="custom-connect">
+        <summary>Connect a different app</summary>
+        <div class="input-group">
+          <input
+            type="url"
+            id="gas-url-input"
+            placeholder="https://script.google.com/macros/s/.../exec"
+            autocomplete="off"
+            spellcheck="false"
+            required
+          >
+        </div>
+        <div class="action-row">
+          <button type="button" id="launch-btn" class="btn-primary">
+            <span id="launch-btn-text">Launch Application</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </details>
 
       <div id="shell-error-msg" class="shell-error-text is-hidden"></div>
 

@@ -3,7 +3,7 @@
  * @description Universal PWA Shell Service Worker.
  */
 
-const CACHE_NAME = 'universal-pwa-shell-v6';
+const CACHE_NAME = 'universal-pwa-shell-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

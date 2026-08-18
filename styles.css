@@ -195,6 +195,121 @@ html, body {
   transform: translateY(0);
 }
 
+/* App Picker — one-tap quick-launch tiles for known apps */
+.app-picker {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.app-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: all 0.15s ease;
+}
+
+.app-tile:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 106, 90, 0.15);
+}
+
+.app-tile:active {
+  transform: translateY(0);
+}
+
+.app-tile:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.app-tile:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+.app-tile-icon {
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+.app-tile-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.app-tile-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.app-tile-tagline {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.app-tile-arrow {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.app-tile:hover .app-tile-arrow {
+  transform: translateX(2px);
+  color: var(--primary);
+}
+
+.app-tile.is-loading .app-tile-arrow {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Custom / advanced connect — progressive disclosure via native <details> */
+.custom-connect {
+  width: 100%;
+}
+
+.custom-connect summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.5rem 0 1rem;
+  user-select: none;
+}
+
+.custom-connect summary::-webkit-details-marker {
+  display: none;
+}
+
+.custom-connect summary:hover {
+  color: var(--primary);
+}
+
+.custom-connect summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .privacy-footnote {
   display: flex;
   align-items: center;
@@ -263,4 +378,28 @@ html, body {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #4bb595;
+    --primary-hover: #5fc7a8;
+    --primary-light: rgba(75, 181, 149, 0.15);
+    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    --surface: #1e293b;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --shadow-card: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .input-group input,
+  .app-tile {
+    background: #0f172a;
+  }
+
+  .input-group input:focus {
+    background: #16213a;
+  }
 }
