@@ -3,7 +3,7 @@
  * @description Universal PWA Shell Service Worker.
  */
 
-const CACHE_NAME = 'universal-pwa-shell-v7';
+const CACHE_NAME = 'universal-pwa-shell-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,7 +12,11 @@ const ASSETS_TO_CACHE = [
   './vendor/alpine.min.js',
   './manifest.json',
   './icons/icon.svg',
-  './icons/icon-maskable.svg'
+  './icons/icon-maskable.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {

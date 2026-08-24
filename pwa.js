@@ -292,6 +292,33 @@ function installPWA() {
   }
 }
 
+// 6b. iOS "Add to Home Screen" hint. Safari has no beforeinstallprompt event, so there's
+// no programmatic install trigger — the best we can do is surface the manual Share-sheet
+// steps once, then remember the user saw it.
+function isIOS() {
+  const ua = navigator.userAgent || '';
+  const isIPadOS13Plus = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return /iPad|iPhone|iPod/.test(ua) || isIPadOS13Plus;
+}
+
+function isStandaloneDisplay() {
+  return window.navigator.standalone === true ||
+    (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches);
+}
+
+function maybeShowIOSInstallHint() {
+  if (!isIOS() || isStandaloneDisplay()) return;
+  if (localStorage.getItem('iosInstallHintDismissed') === '1') return;
+
+  const installBar = document.getElementById('pwa-install-bar');
+  const installText = document.getElementById('pwa-install-text');
+  if (!installBar || !installText) return;
+
+  installBar.classList.add('is-ios-hint');
+  installText.textContent = 'Tap Share, then "Add to Home Screen"';
+  installBar.classList.remove('is-hidden');
+}
+
 // 7. Core Boot / Router Flow
 async function initPWA() {
   const params = new URLSearchParams(window.location.search);
@@ -536,9 +563,15 @@ document.addEventListener('DOMContentLoaded', () => {
     dismissBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const installBar = document.getElementById('pwa-install-bar');
-      if (installBar) installBar.classList.add('is-hidden');
+      if (installBar) {
+        if (installBar.classList.contains('is-ios-hint')) {
+          localStorage.setItem('iosInstallHintDismissed', '1');
+        }
+        installBar.classList.add('is-hidden');
+      }
     });
   }
 
+  maybeShowIOSInstallHint();
   initPWA();
 });

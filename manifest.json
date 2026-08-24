@@ -55,5 +55,16 @@
       "type": "image/png",
       "label": "Application launcher on mobile"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Day Planner",
+      "short_name": "Day Planner",
+      "description": "Jump straight into Day Planner",
+      "url": "./?app=day-planner",
+      "icons": [
+        { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
   ]
 }
