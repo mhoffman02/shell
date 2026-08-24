@@ -74,6 +74,13 @@ html, body {
   text-align: center;
 }
 
+.shell-redirect-escape {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

@@ -1,8 +1,11 @@
 /**
  * @file pwa.js
- * @description Universal PWA Shell DOM Mount & Bundle Loader.
- * Uses IndexedDB local storage, DOM mounting into #app-root, and SWR hot-updates.
- * Completely eliminates 3rd-party iframe cookie/tracking prevention blocking.
+ * @description Universal PWA Shell launcher.
+ * An online, previously-trusted app hands off via a real top-level navigation
+ * (window.location.href) to its live GAS deployment — NOT an iframe or a fetch: both
+ * are blocked by Google's edge auth redirect (see shell-gas-pattern.md §9). A build-time
+ * BUILTIN_BUNDLES snapshot, mounted into #app-root via IndexedDB, is the offline-only
+ * fallback when there's no connectivity to hand off to.
  */
 
 let deferredPrompt;
@@ -121,56 +124,7 @@ async function saveCachedBundle(appKey, bundleObj) {
   }
 }
 
-// 4. Remote Bundle Fetcher (with CORS + JSONP fallback)
-function fetchRemoteBundleJsonp(gasUrl, currentHash) {
-  return new Promise((resolve) => {
-    const callbackName = 'gas_bundle_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-    const script = document.createElement('script');
-    let resolved = false;
-
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        cleanup();
-        resolve(null);
-      }
-    }, 15000);
-
-    function cleanup() {
-      clearTimeout(timer);
-      try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-
-    window[callbackName] = (data) => {
-      if (!resolved) {
-        resolved = true;
-        cleanup();
-        resolve(data);
-      }
-    };
-
-    script.onerror = () => {
-      if (!resolved) {
-        resolved = true;
-        cleanup();
-        resolve(null);
-      }
-    };
-
-    const separator = gasUrl.includes('?') ? '&' : '?';
-    script.src = `${gasUrl}${separator}action=bundle&callback=${callbackName}${currentHash ? '&currentHash=' + encodeURIComponent(currentHash) : ''}`;
-    document.head.appendChild(script);
-  });
-}
-
-async function fetchRemoteBundle(gasUrl, currentHash) {
-  if (!gasUrl) return null;
-  // Use JSONP script injection directly (bypasses 100% of browser CORS and tracking blocker restrictions)
-  return fetchRemoteBundleJsonp(gasUrl, currentHash);
-}
-
-// 5. DOM Mounting Engine: Injects Styles, Markup, and Executes Scripts
+// 4. DOM Mounting Engine: Injects Styles, Markup, and Executes Scripts
 function mountBundle(bundlePayload) {
   const root = document.getElementById('app-root');
   if (!root || !bundlePayload) return;
@@ -263,6 +217,52 @@ function mountBundle(bundlePayload) {
   // DO NOT call Alpine.start() here — vendor/alpine.min.js auto-starts via defer.
 }
 
+// 4b. Hand off to the live GAS deployment via a top-level navigation. Brief delay before
+// the navigation fires so the "Not this app?" escape hatch is actually clickable — a bad
+// or rotated trusted URL otherwise has no recovery path short of a manual ?reset=1.
+const REDIRECT_DELAY_MS = 600;
+let redirectTimer = null;
+
+function redirectToApp(appDisplayName, gasUrl, appKey) {
+  clearTimeout(redirectTimer);
+
+  const configModal = document.getElementById('config-modal');
+  const loading = document.getElementById('shell-loading');
+  const loadingText = document.getElementById('shell-loading-text');
+  if (configModal) configModal.classList.add('is-hidden');
+  if (loading) loading.classList.remove('is-hidden');
+  if (loadingText) loadingText.textContent = `Opening ${appDisplayName}…`;
+
+  let escapeLink = document.getElementById('shell-redirect-escape');
+  if (!escapeLink && loading) {
+    escapeLink = document.createElement('a');
+    escapeLink.id = 'shell-redirect-escape';
+    escapeLink.href = '#';
+    escapeLink.className = 'shell-redirect-escape';
+    escapeLink.textContent = 'Not this app? Choose a different app';
+    loading.appendChild(escapeLink);
+  }
+  if (escapeLink) {
+    escapeLink.classList.remove('is-hidden');
+    escapeLink.onclick = (e) => {
+      e.preventDefault();
+      clearTimeout(redirectTimer);
+      escapeLink.classList.add('is-hidden');
+      localStorage.removeItem(`gas_url_${appKey}`);
+      if (appKey === 'day-planner') {
+        localStorage.removeItem('dayPlannerGasUrl');
+        localStorage.removeItem('gas_planner_url');
+      }
+      if (loading) loading.classList.add('is-hidden');
+      showConnectPrompt(appDisplayName, null, null);
+    };
+  }
+
+  redirectTimer = setTimeout(() => {
+    window.location.href = gasUrl;
+  }, REDIRECT_DELAY_MS);
+}
+
 // 6. PWA Install Prompt Listener
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -304,6 +304,19 @@ async function initPWA() {
 
   document.title = `${appDisplayName}`;
 
+  // ?reset=1 clears this app's trusted source and forces the picker — the recovery path
+  // when a previously-trusted URL has gone bad (deployment rotated, access revoked) and
+  // would otherwise auto-redirect to a dead page on every visit.
+  if (params.get('reset') === '1') {
+    localStorage.removeItem(storageKey);
+    if (appKey === 'day-planner') {
+      localStorage.removeItem('dayPlannerGasUrl');
+      localStorage.removeItem('gas_planner_url');
+    }
+    showConnectPrompt(appDisplayName, null, explicitAppKey);
+    return;
+  }
+
   let trustedGasUrl = localStorage.getItem(storageKey);
 
   // Backward compatibility check for legacy storage keys
@@ -313,9 +326,9 @@ async function initPWA() {
   }
 
   // A ?gasUrl= link only auto-runs if it matches a source already approved for this app
-  // (via a prior explicit Launch click). A new/unrecognized source is never fetched or
-  // executed silently — even if it passes the URL allowlist — it just pre-fills the
-  // Connect modal below and waits for the user to click Launch.
+  // (via a prior explicit Launch click). A new/unrecognized source is never redirected to
+  // silently — even if it passes the URL allowlist — it just pre-fills the Connect modal
+  // below and waits for the user to click Launch.
   let gasUrl = trustedGasUrl;
   let pendingGasUrl = null;
   if (rawExplicitGasUrl) {
@@ -328,50 +341,33 @@ async function initPWA() {
     }
   }
 
-  let cached = await getCachedBundle(appKey);
+  // A. Online + already-trusted source: hand off to the live GAS deployment via a
+  // top-level navigation (see shell-gas-pattern.md §9 — cross-origin fetch and iframes
+  // both fail against GAS's edge auth redirect; only a real navigation works).
+  if (!pendingGasUrl && gasUrl && isValidGasUrl(gasUrl) && navigator.onLine) {
+    redirectToApp(appDisplayName, gasUrl, appKey);
+    return;
+  }
 
-  // A. Check built-in offline bundles if no IndexedDB cache exists yet (cold start)
+  // B. Offline (or nothing trusted yet): fall back to the last-known-good bundle so the
+  // app is still usable without connectivity. This snapshot is baked into pwa.js at
+  // deploy time (tools/build-shell-bundle.js) — there is no runtime refresh, since a live
+  // fetch back to GAS is exactly what §9 documents as impossible from this origin.
+  let cached = await getCachedBundle(appKey);
   if (!cached && typeof BUILTIN_BUNDLES !== 'undefined' && (BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'])) {
     cached = BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'];
     await saveCachedBundle(appKey, cached); // persist to IndexedDB for future loads
     console.log('📦 Hydrated from BUILTIN_BUNDLES (offline cold-start).');
   }
-
-  // B. If cached / built-in bundle exists: MOUNT INSTANTLY (0ms offline cold-start!)
-  if (cached && (cached.bundle || cached.html)) {
+  if (cached && (cached.bundle || cached.html) && !navigator.onLine) {
     mountBundle(cached);
-
-    // Background SWR update check, only ever against an already-trusted source
-    if (navigator.onLine && gasUrl && isValidGasUrl(gasUrl)) {
-      fetchRemoteBundle(gasUrl, cached.hash).then(async (update) => {
-        if (update && !update.upToDate && (update.bundle || update.html)) {
-          await saveCachedBundle(appKey, update);
-          console.log('📦 Updated bundle cached for next launch (SWR).');
-        }
-      }).catch(() => {});
-    }
-
     if (pendingGasUrl) showConnectPrompt(appDisplayName, pendingGasUrl, explicitAppKey);
     return;
   }
 
-  // C. If a previously-trusted gasUrl is saved, fetch the bundle from it directly
-  if (gasUrl && isValidGasUrl(gasUrl) && navigator.onLine) {
-    const loadingText = document.getElementById('shell-loading-text');
-    if (loadingText) loadingText.textContent = `Loading ${appDisplayName}...`;
-
-    const remote = await fetchRemoteBundle(gasUrl, null);
-    if (remote && (remote.bundle || remote.html)) {
-      await saveCachedBundle(appKey, remote);
-      mountBundle(remote);
-      return;
-    }
-  }
-
-  // D. Show the launcher — known-app quick-launch tiles if any apply, otherwise the
+  // C. Show the launcher — known-app quick-launch tiles if any apply, otherwise the
   // custom-connect form pre-filled with any previously-trusted URL. Nothing executes
-  // until the user takes an explicit action (a tile tap, or Launch in handleConnect,
-  // which re-validates before fetching anything).
+  // until the user takes an explicit action (a tile tap, or Launch in handleConnect).
   showConnectPrompt(appDisplayName, pendingGasUrl || null, explicitAppKey);
 }
 
@@ -412,26 +408,33 @@ function renderAppPicker(explicitAppKey) {
 async function launchKnownApp(app, btnEl) {
   const errorMsg = document.getElementById('shell-error-msg');
   if (errorMsg) errorMsg.classList.add('is-hidden');
+  localStorage.setItem(`gas_url_${app.key}`, app.url);
+  if (app.key === 'day-planner') localStorage.setItem('dayPlannerGasUrl', app.url);
+
+  if (navigator.onLine) {
+    redirectToApp(app.name, app.url, app.key);
+    return;
+  }
+
+  // Offline: fall back to whatever's cached for this app (if anything) instead of trying
+  // — and failing — a live handoff with no connectivity.
   if (btnEl) {
     btnEl.disabled = true;
     btnEl.classList.add('is-loading');
   }
-
-  const bundleData = await fetchRemoteBundle(app.url, null);
-  if (bundleData && (bundleData.bundle || bundleData.html)) {
-    localStorage.setItem(`gas_url_${app.key}`, app.url);
-    localStorage.setItem('dayPlannerGasUrl', app.url);
-    await saveCachedBundle(app.key, bundleData);
-    mountBundle(bundleData);
-  } else {
-    if (btnEl) {
-      btnEl.disabled = false;
-      btnEl.classList.remove('is-loading');
-    }
-    if (errorMsg) {
-      errorMsg.textContent = `⚠️ Could not reach ${app.name}. Check your connection and try again.`;
-      errorMsg.classList.remove('is-hidden');
-    }
+  const cached = (await getCachedBundle(app.key)) ||
+    (typeof BUILTIN_BUNDLES !== 'undefined' ? BUILTIN_BUNDLES[app.key] : null);
+  if (cached && (cached.bundle || cached.html)) {
+    mountBundle(cached);
+    return;
+  }
+  if (btnEl) {
+    btnEl.disabled = false;
+    btnEl.classList.remove('is-loading');
+  }
+  if (errorMsg) {
+    errorMsg.textContent = `⚠️ You're offline and ${app.name} hasn't been opened on this device yet. Connect to the internet and try again.`;
+    errorMsg.classList.remove('is-hidden');
   }
 }
 
@@ -457,7 +460,7 @@ function showConnectPrompt(appDisplayName, prefillUrl, explicitAppKey) {
     if (modalTitle) modalTitle.textContent = `Connect ${appDisplayName}`;
     if (modalDesc) modalDesc.textContent = prefillUrl
       ? 'A new source was provided. Review and launch to continue:'
-      : 'Enter your Google Apps Script Web App URL to download and run the app:';
+      : 'Enter your Google Apps Script Web App URL to launch the app:';
     if (picker) picker.classList.add('is-hidden');
     if (customConnect) customConnect.open = true;
     if (input && prefillUrl) input.value = prefillUrl;
@@ -472,7 +475,6 @@ async function handleConnect() {
   const storageKey = `gas_url_${appKey}`;
 
   const input = document.getElementById('gas-url-input');
-  const btnText = document.getElementById('launch-btn-text');
   const errorMsg = document.getElementById('shell-error-msg');
   if (!input) return;
 
@@ -486,20 +488,18 @@ async function handleConnect() {
   }
 
   if (errorMsg) errorMsg.classList.add('is-hidden');
-  if (btnText) btnText.textContent = 'Downloading bundle...';
 
-  const bundleData = await fetchRemoteBundle(url, null);
-  if (bundleData && (bundleData.bundle || bundleData.html)) {
-    localStorage.setItem(storageKey, url);
-    localStorage.setItem('dayPlannerGasUrl', url);
-    await saveCachedBundle(appKey, bundleData);
-    mountBundle(bundleData);
-  } else {
-    if (btnText) btnText.textContent = 'Launch Application';
-    if (errorMsg) {
-      errorMsg.textContent = '⚠️ Could not download bundle. Please verify your Web App is deployed with "Anyone" access and CORS enabled.';
-      errorMsg.classList.remove('is-hidden');
-    }
+  localStorage.setItem(storageKey, url);
+  if (appKey === 'day-planner') localStorage.setItem('dayPlannerGasUrl', url);
+
+  if (navigator.onLine) {
+    redirectToApp(formatAppName(appKey), url, appKey);
+    return;
+  }
+
+  if (errorMsg) {
+    errorMsg.textContent = '⚠️ You appear to be offline. Connect to the internet to launch this app.';
+    errorMsg.classList.remove('is-hidden');
   }
 }
 
