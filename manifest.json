@@ -1,4 +1,5 @@
 {
+  "id": "/shell/",
   "name": "Workspace PWA Launcher",
   "short_name": "Workspace",
   "description": "Universal Installable PWA Launcher for Google Apps Script Web Apps.",
@@ -10,16 +11,49 @@
   "theme_color": "#2d6a5a",
   "icons": [
     {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "./icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "./icons/icon-maskable.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshots/wide_desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Application launcher on desktop"
+    },
+    {
+      "src": "./screenshots/mobile_narrow.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "label": "Application launcher on mobile"
     }
   ]
 }

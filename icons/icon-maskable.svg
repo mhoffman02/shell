@@ -14,7 +14,7 @@
   </defs>
 
   <!-- Full-bleed background: OS applies its own mask shape (circle/squircle/rounded-square),
-       so no rounded corners here -- only the foreground below needs to respect the safe zone. -->
+       so no rounded corners here; only the foreground below needs to respect the safe zone. -->
   <rect width="512" height="512" fill="url(#bg)" />
 
   <!-- Foreground scaled to ~70% diameter (well within the 80%-diameter maskable safe zone)
