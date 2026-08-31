@@ -374,27 +374,21 @@ async function initPWA() {
   // (via a prior explicit Launch click). A new/unrecognized source is never redirected to
   // silently — even if it passes the URL allowlist — it just pre-fills the Connect modal
   // below and waits for the user to click Launch.
-  let gasUrl = trustedGasUrl;
   let pendingGasUrl = null;
   if (rawExplicitGasUrl) {
     if (!isValidGasUrl(rawExplicitGasUrl)) {
       console.warn('Ignoring invalid gasUrl parameter.');
     } else if (rawExplicitGasUrl !== trustedGasUrl) {
       pendingGasUrl = rawExplicitGasUrl;
-    } else {
-      gasUrl = trustedGasUrl;
     }
   }
 
-  // A. Online + already-trusted source: hand off to the live GAS deployment via a
-  // top-level navigation (see shell-gas-pattern.md §9 — cross-origin fetch and iframes
-  // both fail against GAS's edge auth redirect; only a real navigation works). Skipped in
-  // dev mode so the picker (with its Launch /dev link) is reachable instead of always
-  // auto-launching prod.
-  if (!pendingGasUrl && gasUrl && isValidGasUrl(gasUrl) && navigator.onLine && !isDevMode()) {
-    redirectToApp(appDisplayName, gasUrl, appKey);
-    return;
-  }
+  // Every launch — even a previously-trusted app — goes through the picker's real <a href>
+  // tile in case C below rather than an automatic window.location.href. A script-scheduled
+  // redirect fires with no user activation at all (no click, no key press), and that's
+  // exactly the case observed silently landing on the wrong signed-in Google account on a
+  // multi-account machine. Requiring one real click/tap every visit is what makes account
+  // resolution reliable.
 
   // B. Offline (or nothing trusted yet): fall back to the last-known-good bundle so the
   // app is still usable without connectivity. This snapshot is baked into pwa.js at
