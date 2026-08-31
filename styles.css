@@ -331,6 +331,14 @@ html, body {
   stroke: var(--text-muted);
 }
 
+.shell-version {
+  margin-top: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+}
+
 /* Floating Install PWA Banner */
 #pwa-install-bar {
   position: fixed;
