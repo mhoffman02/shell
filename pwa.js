@@ -429,11 +429,11 @@ function renderAppPicker(explicitAppKey) {
 
   picker.innerHTML = '';
   apps.forEach((app) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'app-tile';
-    btn.setAttribute('aria-label', `Launch ${app.name}`);
-    btn.innerHTML = `
+    const link = document.createElement('a');
+    link.className = 'app-tile';
+    link.href = app.url;
+    link.setAttribute('aria-label', `Launch ${app.name}`);
+    link.innerHTML = `
       <img class="app-tile-icon" src="${app.icon}" alt="" width="40" height="40">
       <span class="app-tile-text">
         <span class="app-tile-name"></span>
@@ -441,44 +441,44 @@ function renderAppPicker(explicitAppKey) {
       </span>
       <svg class="app-tile-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     `;
-    btn.querySelector('.app-tile-name').textContent = app.name;
-    const taglineEl = btn.querySelector('.app-tile-tagline');
+    link.querySelector('.app-tile-name').textContent = app.name;
+    const taglineEl = link.querySelector('.app-tile-tagline');
     if (taglineEl) taglineEl.textContent = app.tagline;
-    btn.addEventListener('click', () => launchKnownApp(app, btn));
-    picker.appendChild(btn);
+    link.addEventListener('click', (e) => launchKnownApp(app, link, e));
+    picker.appendChild(link);
   });
 }
 
-// One-tap launch for a KNOWN_APPS entry: fetches straight from its baked-in URL (no
-// paste, no consent modal needed — the URL is developer-shipped, not visitor-supplied),
-// then persists it as trusted for silent loads on future visits, same as handleConnect.
-async function launchKnownApp(app, btnEl) {
+// One-tap launch for a KNOWN_APPS entry: a real <a href> to its baked-in URL, so the
+// browser performs a genuine, user-activated top-level navigation in the current window
+// (no JS-driven location.href, no setTimeout delay) — a script-scheduled redirect loses
+// user-activation status by the time it fires, which some Google account-resolution flows
+// treat differently (observed: silently landing on the wrong signed-in Google account's
+// Drive rather than the one that just authenticated). Persists the URL as trusted for
+// silent loads on future visits, same as handleConnect, then lets the click proceed
+// natively — no paste, no consent modal needed, since the URL is developer-shipped, not
+// visitor-supplied.
+async function launchKnownApp(app, linkEl, clickEvent) {
   const errorMsg = document.getElementById('shell-error-msg');
   if (errorMsg) errorMsg.classList.add('is-hidden');
   localStorage.setItem(`gas_url_${app.key}`, app.url);
   if (app.key === 'day-planner') localStorage.setItem('dayPlannerGasUrl', app.url);
 
   if (navigator.onLine) {
-    redirectToApp(app.name, app.url, app.key);
-    return;
+    return; // let the native <a> navigation proceed
   }
 
-  // Offline: fall back to whatever's cached for this app (if anything) instead of trying
-  // — and failing — a live handoff with no connectivity.
-  if (btnEl) {
-    btnEl.disabled = true;
-    btnEl.classList.add('is-loading');
-  }
+  // Offline: fall back to whatever's cached for this app (if anything) instead of letting
+  // the link navigate to a live URL that can't be reached.
+  if (clickEvent) clickEvent.preventDefault();
+  if (linkEl) linkEl.classList.add('is-loading');
   const cached = (await getCachedBundle(app.key)) ||
     (typeof BUILTIN_BUNDLES !== 'undefined' ? BUILTIN_BUNDLES[app.key] : null);
   if (cached && (cached.bundle || cached.html)) {
     mountBundle(cached);
     return;
   }
-  if (btnEl) {
-    btnEl.disabled = false;
-    btnEl.classList.remove('is-loading');
-  }
+  if (linkEl) linkEl.classList.remove('is-loading');
   if (errorMsg) {
     errorMsg.textContent = `⚠️ You're offline and ${app.name} hasn't been opened on this device yet. Connect to the internet and try again.`;
     errorMsg.classList.remove('is-hidden');
