@@ -62,8 +62,25 @@ const BUILTIN_BUNDLES = {
 };
 
 // 1. Service Worker Registration
+//
+// Browsers throttle their own automatic sw.js byte-diff check to roughly once
+// per 24h per registration, so a plain reload can keep serving a stale cached
+// bundle indefinitely even right after a fresh deploy. Explicitly calling
+// registration.update() bypasses that throttle, and reloading once when the
+// new worker actually takes control (controllerchange) means a single visit
+// is enough to pick up a new release instead of requiring a manual
+// DevTools -> Unregister -> reload dance.
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(console.error);
+  navigator.serviceWorker.register('./sw.js')
+    .then((registration) => registration.update())
+    .catch(console.error);
+
+  let swRefreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swRefreshed) return;
+    swRefreshed = true;
+    window.location.reload();
+  });
 }
 
 // 2. Format app name from slug (e.g., 'day-planner' -> 'Day Planner')
