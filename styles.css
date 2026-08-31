@@ -388,6 +388,29 @@ html, body {
   color: #ffffff;
 }
 
+.install-spinner {
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+#pwa-install-bar.is-installing {
+  cursor: default;
+  pointer-events: none;
+}
+
+#pwa-install-bar.is-installing .install-icon {
+  display: none;
+}
+
+#pwa-install-bar.is-installing .install-spinner {
+  display: inline-block;
+}
+
 .is-hidden {
   display: none !important;
 }

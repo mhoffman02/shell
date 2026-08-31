@@ -317,11 +317,18 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 function installPWA() {
   if (deferredPrompt) {
+    const installBar = document.getElementById('pwa-install-bar');
+    const installText = document.getElementById('pwa-install-text');
+    if (installBar) installBar.classList.add('is-installing');
+    if (installText) installText.textContent = 'Installing…';
+
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then(() => {
       deferredPrompt = null;
-      const installBar = document.getElementById('pwa-install-bar');
-      if (installBar) installBar.classList.add('is-hidden');
+      if (installBar) {
+        installBar.classList.remove('is-installing');
+        installBar.classList.add('is-hidden');
+      }
     });
   }
 }
