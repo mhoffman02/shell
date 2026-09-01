@@ -12,4 +12,4 @@
  * Plain top-level `const` (not an ES module export) so both a classic <script> tag and
  * importScripts() can consume it identically — this project has no bundler/build step.
  */
-const SHELL_VERSION = 'v20';
+const SHELL_VERSION = 'v21';
