@@ -38,16 +38,22 @@ html, body {
   display: block;
 }
 
-/* Loading Skeleton / Splash */
+/* Loading Skeleton / Splash — fixed overlay so it still works as redirectToApp()'s
+   transition state even when shown over an already-mounted app (see index.html). */
 .shell-loading-container {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
   gap: 1.25rem;
   color: var(--text-main);
   font-family: serif;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9600;
 }
 
 .shell-spinner {
@@ -337,6 +343,27 @@ html, body {
   color: var(--text-muted);
   opacity: 0.7;
   letter-spacing: 0.02em;
+}
+
+/* Offline-first "Go live" banner — see showGoLiveBanner() in pwa.js */
+.shell-live-banner {
+  position: fixed;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  background: rgba(15, 23, 42, 0.72);
+  color: #ffffff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  text-decoration: none;
+  z-index: 9500;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.shell-live-banner:hover {
+  background: rgba(15, 23, 42, 0.9);
+  text-decoration: underline;
 }
 
 /* Floating Install PWA Banner */

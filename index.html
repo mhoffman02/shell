@@ -22,12 +22,23 @@
 </head>
 <body>
   <!-- Dynamic Application DOM Mount Container -->
-  <div id="app-root">
-    <div id="shell-loading" class="shell-loading-container">
-      <div class="shell-spinner"></div>
-      <div id="shell-loading-text" class="shell-loading-text">Loading application...</div>
-    </div>
+  <div id="app-root"></div>
+
+  <!-- Loading/transition overlay. A sibling of #app-root, not a child — offline-first
+       mounting replaces #app-root's innerHTML (see mountBundle()), and this needs to keep
+       working as redirectToApp()'s "Opening…" state even after that's happened (e.g. a
+       "Go live" tap from an already-mounted cached view). Visible by default so it also
+       covers the very first pre-mount paint, same as before this moved out of #app-root. -->
+  <div id="shell-loading" class="shell-loading-container">
+    <div class="shell-spinner"></div>
+    <div id="shell-loading-text" class="shell-loading-text">Loading application...</div>
   </div>
+
+  <!-- Offline-first "Go live" banner: shown over the mounted cached bundle whenever a
+       trusted GAS URL is on file and the browser is online. Sits outside #app-root so
+       mountBundle() replacing #app-root's innerHTML never removes it. See
+       showGoLiveBanner()/hideGoLiveBanner() in pwa.js. -->
+  <a href="#" id="shell-golive-link" class="shell-live-banner is-hidden">Using cached copy · Go live</a>
 
   <!-- First-Run / Setup Connection Card -->
   <div id="config-modal" class="is-hidden">
@@ -41,6 +52,13 @@
       <p id="modal-desc">Choose an app to launch:</p>
 
       <div id="app-picker" class="app-picker is-hidden"></div>
+
+      <!-- Always-available manual fallback: a live tile tap can land on a Google
+           account/org error page instead of the app (see launchKnownApp/redirectToApp in
+           pwa.js), with no way for this page to detect that failure once navigation has
+           happened. This link never depends on detecting failure — it just offers the last
+           cached/offline bundle directly, shown whenever one exists for this app. -->
+      <button type="button" id="use-offline-btn" class="shell-redirect-escape is-hidden">Use offline copy</button>
 
       <details id="custom-connect" class="custom-connect">
         <summary>Connect a different app</summary>
@@ -82,7 +100,7 @@
       <!-- Human-readable build tag. Bump alongside sw.js's CACHE_NAME whenever a cached
            asset (pwa.js, styles.css, this file, etc.) changes, so a user reporting a bug
            can tell us which build they're actually running. -->
-      <div id="shell-version" class="shell-version">Shell v15</div>
+      <div id="shell-version" class="shell-version">Shell v16</div>
     </div>
   </div>
 

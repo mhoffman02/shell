@@ -1,11 +1,14 @@
 /**
  * @file pwa.js
  * @description Universal PWA Shell launcher.
- * An online, previously-trusted app hands off via a real top-level navigation
- * (window.location.href) to its live GAS deployment — NOT an iframe or a fetch: both
- * are blocked by Google's edge auth redirect (see shell-gas-pattern.md §9). A build-time
- * BUILTIN_BUNDLES snapshot, mounted into #app-root via IndexedDB, is the offline-only
- * fallback when there's no connectivity to hand off to.
+ * Offline-first: whenever a cached/BUILTIN_BUNDLES snapshot exists for the requested app,
+ * it's mounted immediately on load — no click, no connectivity check. Going live is a
+ * separate, explicit action (the "Go live" banner, or a picker tile on first run) that
+ * hands off via a real top-level navigation (window.location.href) to the GAS deployment
+ * — NOT an iframe or a fetch: both are blocked by Google's edge auth redirect (see
+ * shell-gas-pattern.md §9). That §9 CORS gap is also why this is "stale-first, explicit
+ * refresh" rather than true silent stale-while-revalidate: there is no way for this page to
+ * background-fetch a fresher bundle without the user leaving it via that same navigation.
  */
 
 let deferredPrompt;
@@ -244,9 +247,13 @@ function mountBundle(bundlePayload) {
     document.body.appendChild(newScript);
   });
 
-  // Hide configuration modal if open
+  // Hide configuration modal and loading/transition overlay if open — #shell-loading now
+  // lives outside #app-root (see index.html) so it survives this mount and must be hidden
+  // explicitly instead of being implicitly wiped by the innerHTML assignment above.
   const configModal = document.getElementById('config-modal');
   if (configModal) configModal.classList.add('is-hidden');
+  const loadingOverlay = document.getElementById('shell-loading');
+  if (loadingOverlay) loadingOverlay.classList.add('is-hidden');
 
   // DO NOT call Alpine.start() here — vendor/alpine.min.js auto-starts via defer.
 }
@@ -295,6 +302,26 @@ function redirectToApp(appDisplayName, gasUrl, appKey) {
   redirectTimer = setTimeout(() => {
     window.location.href = gasUrl;
   }, REDIRECT_DELAY_MS);
+}
+
+// 5. Offline-first "Go live" banner. Shown over the mounted cached bundle whenever a
+// trusted GAS URL is on file and the browser reports online — a single explicit action to
+// hand off to the live app, standing in for a background refresh that §9's CORS gap makes
+// impossible to do silently. Lives outside #app-root so mountBundle() never clobbers it.
+function showGoLiveBanner(appDisplayName, gasUrl, appKey) {
+  const banner = document.getElementById('shell-golive-link');
+  if (!banner) return;
+  banner.classList.remove('is-hidden');
+  banner.onclick = (e) => {
+    e.preventDefault();
+    hideGoLiveBanner();
+    redirectToApp(appDisplayName, gasUrl, appKey);
+  };
+}
+
+function hideGoLiveBanner() {
+  const banner = document.getElementById('shell-golive-link');
+  if (banner) banner.classList.add('is-hidden');
 }
 
 // 6. PWA Install Prompt Listener
@@ -373,6 +400,17 @@ async function initPWA() {
 
   document.title = `${appDisplayName}`;
 
+  // Looked up up-front (before the reset/picker branches below) so both can offer the
+  // "Use offline copy" fallback link regardless of which branch is taken — a reset only
+  // forgets the trusted URL, not whatever's already cached.
+  let cached = await getCachedBundle(appKey);
+  if (!cached && typeof BUILTIN_BUNDLES !== 'undefined' && (BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'])) {
+    cached = BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'];
+    await saveCachedBundle(appKey, cached); // persist to IndexedDB for future loads
+    console.log('📦 Hydrated from BUILTIN_BUNDLES (offline cold-start).');
+  }
+  const hasOfflineCopy = !!(cached && (cached.bundle || cached.html));
+
   // ?reset=1 clears this app's trusted source and forces the picker — the recovery path
   // when a previously-trusted URL has gone bad (deployment rotated, access revoked) and
   // would otherwise auto-redirect to a dead page on every visit.
@@ -382,7 +420,7 @@ async function initPWA() {
       localStorage.removeItem('dayPlannerGasUrl');
       localStorage.removeItem('gas_planner_url');
     }
-    showConnectPrompt(appDisplayName, null, explicitAppKey);
+    showConnectPrompt(appDisplayName, null, explicitAppKey, hasOfflineCopy);
     return;
   }
 
@@ -407,33 +445,28 @@ async function initPWA() {
     }
   }
 
-  // Every launch — even a previously-trusted app — goes through the picker's real <a href>
-  // tile in case C below rather than an automatic window.location.href. A script-scheduled
-  // redirect fires with no user activation at all (no click, no key press), and that's
-  // exactly the case observed silently landing on the wrong signed-in Google account on a
-  // multi-account machine. Requiring one real click/tap every visit is what makes account
-  // resolution reliable.
-
-  // B. Offline (or nothing trusted yet): fall back to the last-known-good bundle so the
-  // app is still usable without connectivity. This snapshot is baked into pwa.js at
-  // deploy time (tools/build-shell-bundle.js) — there is no runtime refresh, since a live
-  // fetch back to GAS is exactly what §9 documents as impossible from this origin.
-  let cached = await getCachedBundle(appKey);
-  if (!cached && typeof BUILTIN_BUNDLES !== 'undefined' && (BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'])) {
-    cached = BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner'];
-    await saveCachedBundle(appKey, cached); // persist to IndexedDB for future loads
-    console.log('📦 Hydrated from BUILTIN_BUNDLES (offline cold-start).');
-  }
-  if (cached && (cached.bundle || cached.html) && !navigator.onLine) {
+  // B. Offline-first default: whenever a cached/offline bundle exists, mount it
+  // immediately — online or not, trusted URL or not. This is the fast path on every normal
+  // visit and is what keeps the app usable regardless of whether a live handoff would even
+  // succeed (a wrong Google account slot, an org policy block, or no connectivity all look
+  // the same from here: the cached view just loads). Going live is opt-in from here via the
+  // "Go live" banner (trusted URL + online) rather than gating first paint on it.
+  if (hasOfflineCopy) {
     mountBundle(cached);
-    if (pendingGasUrl) showConnectPrompt(appDisplayName, pendingGasUrl, explicitAppKey);
+    if (pendingGasUrl) {
+      showConnectPrompt(appDisplayName, pendingGasUrl, explicitAppKey, hasOfflineCopy);
+    } else if (trustedGasUrl && navigator.onLine) {
+      showGoLiveBanner(appDisplayName, trustedGasUrl, appKey);
+    }
     return;
   }
 
-  // C. Show the launcher — known-app quick-launch tiles if any apply, otherwise the
-  // custom-connect form pre-filled with any previously-trusted URL. Nothing executes
-  // until the user takes an explicit action (a tile tap, or Launch in handleConnect).
-  showConnectPrompt(appDisplayName, pendingGasUrl || null, explicitAppKey);
+  // C. Nothing cached yet (true first run): show the launcher — known-app quick-launch
+  // tiles if any apply, otherwise the custom-connect form pre-filled with any
+  // previously-trusted URL. Nothing executes until the user takes an explicit action (a
+  // tile tap, or Launch in handleConnect) — there's no offline copy to fall back to yet, so
+  // this is the one case that still requires a live connection.
+  showConnectPrompt(appDisplayName, pendingGasUrl || null, explicitAppKey, hasOfflineCopy);
 }
 
 // Renders quick-launch tiles for KNOWN_APPS into #app-picker. If explicitAppKey names a
@@ -503,7 +536,7 @@ async function launchKnownApp(app, linkEl, clickEvent) {
   }
 }
 
-function showConnectPrompt(appDisplayName, prefillUrl, explicitAppKey) {
+function showConnectPrompt(appDisplayName, prefillUrl, explicitAppKey, hasOfflineCopy) {
   const configModal = document.getElementById('config-modal');
   const input = document.getElementById('gas-url-input');
   const modalTitle = document.getElementById('modal-title');
@@ -537,7 +570,25 @@ function showConnectPrompt(appDisplayName, prefillUrl, explicitAppKey) {
     devBtn.classList.toggle('is-hidden', !(isDevMode() && knownApp));
   }
 
+  const offlineBtn = document.getElementById('use-offline-btn');
+  if (offlineBtn) offlineBtn.classList.toggle('is-hidden', !hasOfflineCopy);
+
   if (configModal) configModal.classList.remove('is-hidden');
+}
+
+// Manual fallback for a live tile tap that lands on a Google account/org error page
+// instead of the app — see the "Use offline copy" note in index.html. Mounts whatever is
+// already cached (IndexedDB or the build-time BUILTIN_BUNDLES snapshot) without attempting
+// any live fetch, so it works the same whether the underlying problem was connectivity or
+// a blocked/misrouted Google account.
+async function useOfflineCopy() {
+  const params = new URLSearchParams(window.location.search);
+  const appKey = (params.get('app') || params.get('name') || 'day-planner').toLowerCase();
+  const cached = (await getCachedBundle(appKey)) ||
+    (typeof BUILTIN_BUNDLES !== 'undefined' ? (BUILTIN_BUNDLES[appKey] || BUILTIN_BUNDLES['day-planner']) : null);
+  if (cached && (cached.bundle || cached.html)) {
+    mountBundle(cached);
+  }
 }
 
 async function handleConnect() {
@@ -588,6 +639,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const app = findKnownApp(appKey);
       if (app) redirectToApp(`${app.name} (dev)`, devUrlFor(app), app.key);
     });
+  }
+
+  const offlineBtn = document.getElementById('use-offline-btn');
+  if (offlineBtn) {
+    offlineBtn.addEventListener('click', useOfflineCopy);
   }
 
   const input = document.getElementById('gas-url-input');
