@@ -2,13 +2,19 @@
  * @file pwa.js
  * @description Universal PWA Shell launcher.
  * Offline-first: whenever a cached/BUILTIN_BUNDLES snapshot exists for the requested app,
- * it's mounted immediately on load — no click, no connectivity check. Going live is a
- * separate, explicit action (the "Go live" banner, or a picker tile on first run) that
- * hands off via a real top-level navigation (window.location.href) to the GAS deployment
- * — NOT an iframe or a fetch: both are blocked by Google's edge auth redirect (see
- * shell-gas-pattern.md §9). That §9 CORS gap is also why this is "stale-first, explicit
- * refresh" rather than true silent stale-while-revalidate: there is no way for this page to
- * background-fetch a fresher bundle without the user leaving it via that same navigation.
+ * it's mounted immediately on load — no click, no connectivity check. There are two
+ * independent freshness paths after that first paint, because they face different
+ * constraints:
+ *   1. bundles.json (same-origin, this GitHub Pages site) — checkForFreshBundle() below
+ *      background-refetches it after mount, compares its `hash` to what's cached, and
+ *      silently updates the IndexedDB copy with a lightweight "Update ready" banner. No
+ *      CORS issue here, so this is true stale-while-revalidate.
+ *   2. The live GAS deployment (cross-origin) — going live is a separate, explicit action
+ *      (the "Go live" banner, or a picker tile on first run) that hands off via a real
+ *      top-level navigation (window.location.href), NOT an iframe or a fetch: both are
+ *      blocked by Google's edge auth redirect (see shell-gas-pattern.md §9). That CORS gap
+ *      is why *this* path stays "stale-first, explicit refresh" — there is no way to
+ *      background-check whether the live app itself has changed.
  */
 
 let deferredPrompt;
@@ -176,6 +182,27 @@ async function saveCachedBundle(appKey, bundleObj) {
   }
 }
 
+// 3b. Background freshness check (stale-while-revalidate for bundles.json only — see the
+// file header for why the live GAS app can't use the same approach). Runs after the cached
+// bundle is already mounted, so it never blocks or delays first paint. sw.js serves
+// bundles.json network-first specifically so this sees a same-day rebake instead of whatever
+// was precached at install time.
+async function checkForFreshBundle(appKey, mountedEntry) {
+  if (!navigator.onLine) return;
+  try {
+    const res = await fetch('./bundles.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const fresh = (await res.json())[appKey];
+    if (!fresh || !fresh.hash) return;
+    if (mountedEntry && mountedEntry.hash === fresh.hash) return; // already current
+
+    await saveCachedBundle(appKey, fresh);
+    showUpdateBanner();
+  } catch (err) {
+    console.warn('[shell] Background bundle freshness check failed:', err && err.stack || err);
+  }
+}
+
 // 4. DOM Mounting Engine: Injects Styles, Markup, and Executes Scripts
 function mountBundle(bundlePayload) {
   const root = document.getElementById('app-root');
@@ -339,6 +366,19 @@ function hideGoLiveBanner() {
   if (banner) banner.classList.add('is-hidden');
 }
 
+// 5b. "Update ready" banner — shown once checkForFreshBundle() has already swapped a newer
+// bundle into IndexedDB. Distinct from "Go live": this never navigates anywhere, it just
+// reloads so mountBundle() picks up the bundle that's already sitting in the cache.
+function showUpdateBanner() {
+  const banner = document.getElementById('shell-update-link');
+  if (!banner) return;
+  banner.classList.remove('is-hidden');
+  banner.onclick = (e) => {
+    e.preventDefault();
+    window.location.reload();
+  };
+}
+
 // 6. PWA Install Prompt Listener
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -471,6 +511,7 @@ async function initPWA() {
   // "Go live" banner (trusted URL + online) rather than gating first paint on it.
   if (hasOfflineCopy) {
     mountBundle(cached);
+    checkForFreshBundle(appKey, cached); // fire-and-forget; see file header
     if (pendingGasUrl) {
       showConnectPrompt(appDisplayName, pendingGasUrl, explicitAppKey, hasOfflineCopy);
     } else if (trustedGasUrl && navigator.onLine) {

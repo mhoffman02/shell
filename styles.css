@@ -366,6 +366,28 @@ html, body {
   text-decoration: underline;
 }
 
+/* "Update ready" banner — see checkForFreshBundle()/showUpdateBanner() in pwa.js. Bottom-right
+   (vs. shell-live-banner's bottom-left) since both can be visible at once. */
+.shell-update-banner {
+  position: fixed;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  background: rgba(45, 106, 90, 0.85);
+  color: #ffffff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  text-decoration: none;
+  z-index: 9500;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.shell-update-banner:hover {
+  background: rgba(45, 106, 90, 1);
+  text-decoration: underline;
+}
+
 /* Floating Install PWA Banner */
 #pwa-install-bar {
   position: fixed;

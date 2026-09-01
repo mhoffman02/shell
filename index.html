@@ -40,6 +40,12 @@
        showGoLiveBanner()/hideGoLiveBanner() in pwa.js. -->
   <a href="#" id="shell-golive-link" class="shell-live-banner is-hidden">Using cached copy · Go live</a>
 
+  <!-- Background "Update ready" banner: shown once checkForFreshBundle() has silently pulled
+       a newer bundles.json snapshot into the cache. Unlike "Go live" above, clicking this
+       never navigates away — it just reloads to remount the already-cached fresh bundle. See
+       checkForFreshBundle()/showUpdateBanner() in pwa.js. -->
+  <a href="#" id="shell-update-link" class="shell-update-banner is-hidden">Update ready · Refresh</a>
+
   <!-- First-Run / Setup Connection Card -->
   <div id="config-modal" class="is-hidden">
     <div class="modal-card">
