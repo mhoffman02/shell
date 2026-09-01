@@ -490,6 +490,20 @@ async function initPWA() {
     if (trustedGasUrl) localStorage.setItem(storageKey, trustedGasUrl);
   }
 
+  // A KNOWN_APPS entry is trusted by construction (baked into this file by the developer,
+  // not visitor-supplied — see §10.B) even before its tile has ever been tapped on this
+  // device. Without this, a brand-new browser/profile mounts the offline bundles.json
+  // snapshot on first paint (step B below) and never sets trustedGasUrl, so the "Go live"
+  // banner never appears and the visitor is stranded looking at the static offline
+  // snapshot's placeholder data with no visible path to the real, synced app.
+  if (!trustedGasUrl) {
+    const knownApp = findKnownApp(appKey);
+    if (knownApp) {
+      trustedGasUrl = knownApp.url;
+      localStorage.setItem(storageKey, trustedGasUrl);
+    }
+  }
+
   // A ?gasUrl= link only auto-runs if it matches a source already approved for this app
   // (via a prior explicit Launch click). A new/unrecognized source is never redirected to
   // silently — even if it passes the URL allowlist — it just pre-fills the Connect modal
