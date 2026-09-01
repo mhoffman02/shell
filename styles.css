@@ -36,6 +36,14 @@ html, body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   display: block;
+  /* viewport-fit=cover (index.html) makes iOS draw the mounted app edge-to-edge, under the
+     notch/Dynamic Island and status bar. The day-planner bundle mounted here has no safe-area
+     awareness of its own (it's GAS HtmlService markup, never installed standalone on its own —
+     see project_gas_no_service_worker in memory), so this is the only place that can push its
+     top-of-page header clear of the status bar when running installed on iOS. */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* Loading Skeleton / Splash — fixed overlay so it still works as redirectToApp()'s
@@ -348,8 +356,8 @@ html, body {
 /* Offline-first "Go live" banner — see showGoLiveBanner() in pwa.js */
 .shell-live-banner {
   position: fixed;
-  bottom: 0.75rem;
-  left: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  left: calc(0.75rem + env(safe-area-inset-left));
   background: rgba(15, 23, 42, 0.72);
   color: #ffffff;
   padding: 0.4rem 0.75rem;
@@ -370,8 +378,8 @@ html, body {
    (vs. shell-live-banner's bottom-left) since both can be visible at once. */
 .shell-update-banner {
   position: fixed;
-  bottom: 0.75rem;
-  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  right: calc(0.75rem + env(safe-area-inset-right));
   background: rgba(45, 106, 90, 0.85);
   color: #ffffff;
   padding: 0.4rem 0.75rem;
@@ -391,7 +399,7 @@ html, body {
 /* Floating Install PWA Banner */
 #pwa-install-bar {
   position: fixed;
-  bottom: 1.25rem;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   background: var(--primary);
