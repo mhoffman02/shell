@@ -686,6 +686,10 @@ async function handleConnect() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // See version.js (loaded before this file) — single source of truth for the build tag.
+  const versionEl = document.getElementById('shell-version');
+  if (versionEl) versionEl.textContent = `Shell ${SHELL_VERSION}`;
+
   const launchBtn = document.getElementById('launch-btn');
   if (launchBtn) {
     launchBtn.addEventListener('click', handleConnect);

@@ -3,10 +3,12 @@
  * @description Universal PWA Shell Service Worker.
  */
 
-const CACHE_NAME = 'universal-pwa-shell-v18';
+importScripts('./version.js'); // defines SHELL_VERSION — see version.js
+const CACHE_NAME = `universal-pwa-shell-${SHELL_VERSION}`;
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './version.js',
   './styles.css',
   './pwa.js',
   './bundles.json',

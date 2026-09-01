@@ -103,10 +103,10 @@
         <span>Zero cloud storage. Bundle is cached directly in your browser.</span>
       </div>
 
-      <!-- Human-readable build tag. Bump alongside sw.js's CACHE_NAME whenever a cached
-           asset (pwa.js, styles.css, this file, etc.) changes, so a user reporting a bug
-           can tell us which build they're actually running. -->
-      <div id="shell-version" class="shell-version">Shell v18</div>
+      <!-- Human-readable build tag. Text is set at runtime from SHELL_VERSION (see
+           version.js, loaded below) so it can never drift from sw.js's CACHE_NAME the way a
+           second hardcoded literal here previously did. -->
+      <div id="shell-version" class="shell-version"></div>
     </div>
   </div>
 
@@ -118,6 +118,7 @@
     <button type="button" id="pwa-dismiss-btn" aria-label="Dismiss banner">✕</button>
   </div>
 
+  <script src="./version.js"></script>
   <script src="./pwa.js"></script>
 </body>
 </html>
