@@ -47,7 +47,7 @@ Then visit `http://localhost:8000` in a browser. The shell works identically on 
 Visiting the shell root (`/` or `/index.html`) shows a picker:
 
 - **Known apps** — A list of pre-configured apps from the `KNOWN_APPS` array in `pwa.js`, each with a one-tap launch button. Currently includes "Day Planner" pointing to a specific pinned GAS deployment.
-- **Connect a different app** — A text input and "Launch" button to enter an arbitrary GAS web-app URL (must pass a strict `https://script.google.com/macros/s/<id>/(exec|dev)` allowlist regex).
+- **Connect a different app** — A text input and "Launch" button to enter an arbitrary GAS web-app URL (must pass a strict `https://script.google.com/macros/s/<id>/(exec|dev)` or Workspace-domain-scoped `https://script.google.com/a/macros/<domain>/s/<id>/(exec|dev)` allowlist regex).
 
 The first time you launch an app via any method, the chosen URL is stored in localStorage as the trusted source for that app key. Future visits automatically redirect to that URL.
 
@@ -58,6 +58,7 @@ The first time you launch an app via any method, the chosen URL is stored in loc
 - `?dev=1` — Enable dev mode on this device. Sets a localStorage flag that reveals a "Launch /dev (testing)" button pointing to the GAS deployment's `/dev` URL, and disables auto-redirect-to-prod so the picker remains visible. This is a convenience toggle; the `/dev` URL is already restricted server-side by Google IAM to script editors.
 - `?dev=0` — Clear dev mode on this device, reverting to normal (production-only) behavior.
 - `?reset=1` — Clear the trusted-source localStorage entry for the current app key, forcing the connect picker to show again. Use this to recover when a previously-trusted URL has gone stale or access has been revoked.
+- `?domain=<key>` — One-time, per-device bootstrap for a Workspace-domain-scoped deployment of the current app, looked up against `DOMAIN_URL_OVERRIDES` in `pwa.js` (e.g. `?domain=gsa.gov`). For orgs whose device/account policy blocks the default personally-owned deployment, where the same Apps Script project has instead been separately deployed under a Workspace account there. Trusted by construction (baked into `pwa.js` by the developer, not visitor-supplied) — overwrites whatever's currently trusted and is remembered from then on, same as tapping a `KNOWN_APPS` tile. Visit it once in a browser tab; the installed app icon's `start_url` has no query string, so this can't be passed through the icon itself.
 
 ### Offline & Stale Fallback
 

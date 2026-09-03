@@ -24,7 +24,10 @@ const STORE_NAME = 'app_bundles';
 
 // Only Google Apps Script Web App deployment URLs are trusted as bundle sources.
 // Anything else (attacker-controlled domains, ?gasUrl= query-param injection) is rejected.
-const GAS_URL_PATTERN = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
+// A Workspace-domain-owned deployment is published under a domain-scoped path
+// (/a/macros/<domain>/s/...) instead of the plain personal-account path (/macros/s/...) —
+// both forms are accepted here since DOMAIN_URL_OVERRIDES below can supply either shape.
+const GAS_URL_PATTERN = /^https:\/\/script\.google\.com\/(?:macros|a\/macros\/[A-Za-z0-9.-]+)\/s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
 function isValidGasUrl(url) {
   return typeof url === 'string' && GAS_URL_PATTERN.test(url);
 }
@@ -46,6 +49,23 @@ const KNOWN_APPS = [
 function findKnownApp(key) {
   return KNOWN_APPS.find((a) => a.key === key) || null;
 }
+
+// Per-Workspace-domain deployment overrides, keyed by appKey then lowercased email domain.
+// Some orgs' policy blocks a personally-owned deployment (KNOWN_APPS above) from a managed
+// device/account, so the same Apps Script project is separately deployed under a Workspace
+// account there instead — a genuinely different deployment ID under a domain-scoped URL
+// (Apps Script assigns each deployment its own random ID; there is no way to derive one
+// URL from the other, so this has to be a lookup table, not a string splice). This shell has
+// no sign-in step of its own and can't read a visitor's Google account/email before they
+// navigate to script.google.com (cross-origin — see shell-gas-pattern.md §9), so the domain
+// can't be auto-detected; ?domain=<key> is a one-time, per-device bootstrap instead (see
+// initPWA() below) — visit it once on that device/browser and it's remembered like any other
+// trusted URL. Baked in here by the developer, so trusted by construction like KNOWN_APPS.
+const DOMAIN_URL_OVERRIDES = {
+  'day-planner': {
+    'gsa.gov': 'https://script.google.com/a/macros/gsa.gov/s/AKfycbynxBS2OW5FFwx-UU4Y1D_BkjkA4JaAfQZFVvXmsb_-iuFatr1-wNDJ5VGYtsKq2T3r/exec'
+  }
+};
 
 // Dev-mode: a low-key convenience toggle, not a security boundary — the GAS /dev URL it
 // unlocks is already restricted server-side by Google IAM to accounts with edit access to
@@ -488,6 +508,22 @@ async function initPWA() {
   if (!trustedGasUrl) {
     trustedGasUrl = localStorage.getItem('dayPlannerGasUrl') || localStorage.getItem('gas_planner_url');
     if (trustedGasUrl) localStorage.setItem(storageKey, trustedGasUrl);
+  }
+
+  // ?domain=<key> looks up DOMAIN_URL_OVERRIDES — a one-time, per-device bootstrap for a
+  // Workspace-domain-scoped deployment (see that map's comment for why this can't be
+  // auto-detected). Explicit user intent this visit, so it overwrites whatever's already
+  // trusted rather than only filling a gap — the opposite of the KNOWN_APPS fallback below,
+  // which only applies when nothing is trusted yet.
+  const domainParam = params.get('domain');
+  if (domainParam) {
+    const override = (DOMAIN_URL_OVERRIDES[appKey] || {})[domainParam.toLowerCase()];
+    if (override) {
+      trustedGasUrl = override;
+      localStorage.setItem(storageKey, trustedGasUrl);
+    } else {
+      console.warn(`No known GAS URL override for domain "${domainParam}" on app "${appKey}".`);
+    }
   }
 
   // A KNOWN_APPS entry is trusted by construction (baked into this file by the developer,
