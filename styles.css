@@ -353,29 +353,55 @@ html, body {
   letter-spacing: 0.02em;
 }
 
-/* Offline-first "Go live" banner — see showGoLiveBanner() in pwa.js */
+/* Offline-first "Go live" banner — see showGoLiveBanner() in pwa.js. A full-width top strip
+   in high-contrast amber (not the app's own teal, which a bottom-corner version of this used
+   to blend into against the mounted cached app's dark header — easy to miss entirely) with a
+   brief pulse on first appearance, so a first-time visitor notices there's a live/synced
+   version to switch to instead of assuming the offline sample data is the real app. */
 .shell-live-banner {
   position: fixed;
-  bottom: calc(0.75rem + env(safe-area-inset-bottom));
-  left: calc(0.75rem + env(safe-area-inset-left));
-  background: rgba(15, 23, 42, 0.72);
-  color: #ffffff;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.78rem;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #d9a441;
+  color: #1a1200;
+  padding: 0.65rem 1rem;
+  padding-top: calc(0.65rem + env(safe-area-inset-top));
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
   text-decoration: none;
   z-index: 9500;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  animation: shell-live-banner-attract 1.6s ease-in-out 3;
+}
+
+.shell-live-banner-icon {
+  flex-shrink: 0;
 }
 
 .shell-live-banner:hover {
-  background: rgba(15, 23, 42, 0.9);
+  background: #e0af52;
   text-decoration: underline;
 }
 
+@keyframes shell-live-banner-attract {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-live-banner {
+    animation: none;
+  }
+}
+
 /* "Update ready" banner — see checkForFreshBundle()/showUpdateBanner() in pwa.js. Bottom-right
-   (vs. shell-live-banner's bottom-left) since both can be visible at once. */
+   (vs. shell-live-banner's full-width top strip) since both can be visible at once. */
 .shell-update-banner {
   position: fixed;
   bottom: calc(0.75rem + env(safe-area-inset-bottom));

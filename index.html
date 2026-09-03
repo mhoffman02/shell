@@ -38,7 +38,10 @@
        trusted GAS URL is on file and the browser is online. Sits outside #app-root so
        mountBundle() replacing #app-root's innerHTML never removes it. See
        showGoLiveBanner()/hideGoLiveBanner() in pwa.js. -->
-  <a href="#" id="shell-golive-link" class="shell-live-banner is-hidden">Using cached copy · Go live</a>
+  <a href="#" id="shell-golive-link" class="shell-live-banner is-hidden">
+    <svg class="shell-live-banner-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+    <span>Viewing offline sample data — tap to sync your real account</span>
+  </a>
 
   <!-- Background "Update ready" banner: shown once checkForFreshBundle() has silently pulled
        a newer bundles.json snapshot into the cache. Unlike "Go live" above, clicking this
